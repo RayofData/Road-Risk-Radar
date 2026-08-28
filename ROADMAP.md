@@ -30,8 +30,10 @@
 
 ---
 
-## V2: Virginia
+## V2: Map + Virginia
 
+* add county boundaries
+* add Streamlit county risk map
 * add Virginia crash extraction
 * add Virginia AADT
 * standardize Iowa/Virginia schemas
@@ -46,11 +48,9 @@
 * add SHAP
 * improve imbalance evaluation
 
-## V4: Colorado + Map
+## V4: Colorado
 
 * add Colorado crash extraction
 * add Colorado AADT
 * build three-state dataset
 * add leave-one-state-out validation
-* add county boundaries
-* add Streamlit county risk map
