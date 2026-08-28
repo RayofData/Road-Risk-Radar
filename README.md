@@ -1,6 +1,6 @@
 # Road Risk Radar
 
-**RoadRisk** is a machine learning project that predicts whether an Iowa county is likely to experience **elevated crash activity on a future day** based on historical crash patterns, traffic exposure, weather, and calendar conditions.
+**Road Risk Radar** is a machine learning project that predicts whether an Iowa county is likely to experience **elevated crash activity on a future day** based on historical crash patterns, traffic exposure, weather, and calendar conditions.
 
 The project is built with **Python, scikit-learn, Streamlit, and Open-Meteo**.
 
@@ -75,39 +75,6 @@ Future predictions therefore assume the Open-Meteo forecast conditions occur as 
 
 > Based on historical crash patterns under similar observed conditions, this estimate assumes the forecast conditions occur as predicted.
 
-## Roadmap
-
-### V1
-
-* Iowa
-* 2021–2025 data
-* county/day observations
-* crash + AADT + weather + calendar features
-* historical baseline
-* Logistic Regression
-* temporal validation
-* Streamlit prediction app
-
-### V2
-
-* add Virginia
-* standardize multi-state crash and AADT data
-* retrain on both states
-* compare performance across states
-
-### V3
-
-* add XGBoost or LightGBM
-* probability calibration
-* SHAP explainability
-* deeper model evaluation
-
-### V4
-
-* add Colorado
-* leave-one-state-out geographic validation
-* county risk map
-* three-state prediction interface
 
 ## Goal
 
