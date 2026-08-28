@@ -1,4 +1,4 @@
-# RoadRisk
+# Road Risk Radar
 
 **RoadRisk** is a machine learning project that predicts whether an Iowa county is likely to experience **elevated crash activity on a future day** based on historical crash patterns, traffic exposure, weather, and calendar conditions.
 
