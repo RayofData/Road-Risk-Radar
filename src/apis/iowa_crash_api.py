@@ -4,24 +4,24 @@ import requests
 import json
 
 
-IOWA_CRASH_URL = "https://gis.iowadot.gov/agshost/rest/services/Traffic_Safety/Crash_Data/FeatureServer/0/"
+IOWA_CRASH_URL = "https://gis.iowadot.gov/agshost/rest/services/Traffic_Safety/Crash_Data/FeatureServer/0"
 QUERY_URL = f"{IOWA_CRASH_URL}/query"
-
-RAW_DIR = Path("data/raw")
-
-OUTPUT_PATH = RAW_DIR / "iowa_crash_data_raw.json"
-
-PROCESSED_DIR = Path("data/processed")
 
 STATE_WEBSITE = "Iowadot.gov"
 
-PARAMS = {
-    "where": "1=1",
-    "outFields": "OBJECTID,CRASH_DATE,COUNTY_NAME",
-    "returnGeometry": "false",
-    "resultRecordCount": 5,
-    "f": "json"
-}
+BATCH_SIZE = 500
+
+OUT_FIELDS = [
+    "OBJECTID",
+    "CRASH_KEY",
+    "CRASH_DATE",
+    "CRASH_DATETIME",
+    "COUNTY_NUMBER",
+    "COUNTY_NAME",
+    "CSEV",
+    "WEATHER",
+    "CSRFCND"
+]
 
 
 def request_json(params):
@@ -38,7 +38,7 @@ def request_json(params):
         raise RuntimeError(f"{STATE_WEBSITE} API request failed: {e}") from e
 
     try: 
-        payload = requests.json()
+        payload = response.json()
     except requests.JSONDecodeError as e:
         raise RuntimeError(f"{STATE_WEBSITE} API did not return valid JSON.") from e
 
@@ -47,7 +47,13 @@ def request_json(params):
 
 def get_object_ids():
     """Return all object IDs matching filter."""
-    payload = request_json(PARAMS)
+    params = {
+        "where": "1=1",
+        "returnIdsOnly": "true",
+        "f": "json"
+    }
+
+    payload = request_json(params)
 
     object_ids = payload.get("objectIds")
 
@@ -63,6 +69,61 @@ def get_object_ids():
     return sorted(int(object_id) for object_id in object_ids)
 
 
+def batched(values, batch_size):
+    """Yield consecutive batches from a sequence."""
+
+    if type(batch_size) != int:
+        raise ValueError("batch_size must be an integer.")
+
+    if batch_size <= 0:
+        raise ValueError("batch_size must be greater than zero.")
+
+    for start in range(0, len(values), batch_size):
+        yield list(values[start : start + batch_size])
 
 
+def download_batch(object_ids):
+    """Download one batch of features as JSON."""
 
+    params = {
+        "objectIds": ",".join(str(object_id) for object_id in object_ids),
+        "outFields": ",".join(OUT_FIELDS),
+        "returnGeometry": "false",
+        "f": "json"
+    }
+
+    payload = request_json(params)
+
+    features = payload.get("features")
+
+    if features is None:
+        raise RuntimeError("JSON response did not contain a features field.")
+
+    return payload
+
+
+def download_all_features(object_ids):
+    """Download and combine every matching trail feature."""
+
+    combined_features = []
+    batches = list(batched(object_ids, BATCH_SIZE))
+
+    print(f"Matching object IDs: {len(object_ids):,}")
+    print(f"Batch size: {BATCH_SIZE}")
+    print(f"Number of batches: {len(batches)}")
+
+    for batch_number, object_id_batch in enumerate(batches, start = 1):
+        print(
+            f"Downloading batch {batch_number}/{len(batches)} "
+            f"({len(object_id_batch)} records...)"
+        )
+
+        payload = download_batch(object_id_batch)
+        features = payload["features"]
+
+        combined_features.extend(features)
+
+    return {
+        "type": "FeatureCollection",
+        "features": combined_features
+    }

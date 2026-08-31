@@ -12,8 +12,10 @@ __pycache__/
 # Data
 data/raw/*
 data/processed/*
+reports/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!reports/.gitkeep
 
 # Jupyter
 .ipynb_checkpoints/
