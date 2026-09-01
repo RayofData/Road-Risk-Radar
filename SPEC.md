@@ -2,13 +2,13 @@
 
 ## Goal
 
-Build an end-to-end Streamlit ML application that predicts whether an **Iowa county will experience elevated crash activity on a future day**.
+Build an end-to-end Streamlit ML application that predicts whether an **Iowa county will experience elevated crash activity on a future day and time period**.
 
 ## Scope
 
 * Iowa only
-* 2021–2025 data
-* modeling unit: `county × day`
+* 2015–2025 data
+* modeling unit: `county × 3 hour block`
 * no map
 * no boosting
 * no SHAP
@@ -53,8 +53,9 @@ Compare:
 Use a temporal split:
 
 ```text
-Train: 2021–2024
-Test:  2025
+Train:          2015–2023
+Validation:     2024
+Test:           2025
 ```
 
 Do not use a random split as the primary evaluation.
