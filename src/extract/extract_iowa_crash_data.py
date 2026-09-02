@@ -13,14 +13,13 @@ from src.apis.iowa_crash_api import (
     download_all_features
 )
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-RAW_DIR = Path("data/raw")
-REPORT_DIR = Path("reports")
-PROCESSED_DIR = Path("data/processed")
+RAW_DIR = PROJECT_ROOT / "data" / "raw"
+REPORT_DIR = PROJECT_ROOT / "reports"
 
 OUTPUT_PATH = RAW_DIR / "iowa_crash_data_raw.json"
 PROFILE_PATH = REPORT_DIR / "iowa_crash_data_report.json"
-PROCESSED_PATH = PROCESSED_DIR / "iowa_crash_data.json"
 
 
 def build_profile(crashes, expected_count):
@@ -53,6 +52,12 @@ def validate_download(crashes, expected_object_ids):
 
     if "OBJECTID" not in crashes.columns:
         raise RuntimeError("Download data does not contain OBJECTID.")
+
+    if crashes["OBJECTID"].duplicated().any():
+        duplicated_count = crashes["OBJECTID"].duplicated().sum()
+        raise RuntimeError(
+            f"Downloaded data contains {duplicated_count} duplicate OBJECTIDs."
+        )
 
     downloaded_ids = set(crashes["OBJECTID"].dropna().astype(int))
     expected_ids = set(expected_object_ids)
@@ -88,6 +93,14 @@ def main():
     object_ids = get_object_ids()
 
     feature_collection = download_all_features(object_ids)
+    
+    print("\nPreview combined JSON with Pandas DataFrame...")
+    crashes = pd.DataFrame(
+        feature["attributes"]
+        for feature in feature_collection["features"]
+    )
+
+    validate_download(crashes, object_ids)
 
     try: 
         OUTPUT_PATH.write_text(
@@ -99,18 +112,14 @@ def main():
             f"Could not save raw JSON to {OUTPUT_PATH}: {e}"
         )
 
-    print("\nLoading combined JSON with Pandas...")
-    import pandas as pd 
-    crashes = pd.DataFrame(
-        feature["attributes"]
-        for feature in feature_collection["features"]
-    )
-
     print(crashes.head())
-    print(crashes.shape)
-    print(crashes.columns.tolist())
+    print("DataFrame shape:", crashes.shape)
+    print("Columns:", crashes.columns.tolist())
+    print("OBJECTID unique:", crashes["OBJECTID"].is_unique)
+    print("Duplicated OBJECTIDs:", crashes["OBJECTID"].duplicated().sum())
+    print("Missing values:\n")
+    print(crashes.isna().sum())
 
-    validate_download(crashes, object_ids)
 
     profile = build_profile(
         crashes=crashes,
@@ -130,7 +139,7 @@ def main():
     print("\nFull download complete.")
     print(f"Downloaded records: {len(crashes):,}")
     print(f"JSON saved to: {OUTPUT_PATH}")
-    print(f"Profile saved to: {PROCESSED_PATH}")
+    print(f"Profile saved to: {PROFILE_PATH}")
 
 
 if __name__ == "__main__":

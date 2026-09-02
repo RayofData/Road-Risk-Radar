@@ -1,4 +1,6 @@
 pandas
 openmeteo_requests
+requests
 requests_cache
 retry_requests
+matplotlib

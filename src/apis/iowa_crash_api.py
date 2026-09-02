@@ -42,15 +42,25 @@ def request_json(params):
     except requests.JSONDecodeError as e:
         raise RuntimeError(f"{STATE_WEBSITE} API did not return valid JSON.") from e
 
+    if "error" in payload:
+        error = payload["error"]
+        message = error.get("message", "Unknown ArcGIS error")
+        details = error.get("details", [])
+        raise RuntimeError(f"{message}: {details}")
+
     return payload
 
 
 def get_object_ids():
     """Return all object IDs matching filter."""
     params = {
-        "where": "1=1",
-        "returnIdsOnly": "true",
-        "f": "json"
+        "where": (
+            "CRASH_DATE >= TIMESTAMP '2015-01-01 00:00:00' "
+            "AND CRASH_DATE < TIMESTAMP '2026-01-01 00:00:00'"
+        ),
+            "returnIdsOnly": "true",
+            "f": "json"
+
     }
 
     payload = request_json(params)
