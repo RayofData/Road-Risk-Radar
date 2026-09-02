@@ -8,7 +8,7 @@ Build an end-to-end Streamlit ML application that predicts whether an **Iowa cou
 
 * Iowa only
 * 2015–2025 data
-* modeling unit: `county × 3 hour block`
+* modeling unit: `county × date × 3-hour block`
 * no map
 * no boosting
 * no SHAP

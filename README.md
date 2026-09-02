@@ -18,7 +18,7 @@ Training data covers **2015–2025** and combines:
 The modeling unit is:
 
 ```text
-county × 3 hour block
+county × date × 3-hour block
 ```
 
 Each row represents one Iowa county on one date.
