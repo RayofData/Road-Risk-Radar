@@ -76,7 +76,7 @@ def validate_download(crashes, expected_object_ids):
         preview = sorted(unexpected_ids)[:10]
         raise RuntimeError(
             f"{len(unexpected_ids)} object IDs were downloaded. "
-            f"First unexpect IDs: {preview}"
+            f"First unexpected IDs: {preview}"
         )
 
 
