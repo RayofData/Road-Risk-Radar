@@ -21,7 +21,7 @@ The modeling unit is:
 county × date × 3-hour block
 ```
 
-Each row represents one Iowa county on one date.
+Each row represents one Iowa county for one date and 3-hour block.
 
 ## Prediction Target
 

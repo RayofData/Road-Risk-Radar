@@ -23,11 +23,11 @@ Use:
 * Open-Meteo historical weather
 * calendar features
 
-Crash records must be aggregated to county/day.
+Crash records must be aggregated to county × date × 3-hour block.
 
 AADT must provide county-level traffic exposure.
 
-Historical weather must represent each county/day.
+Historical weather must represent each county × date × 3-hour block.
 
 ## Target
 
@@ -37,7 +37,7 @@ Binary classification:
 elevated_crash_activity
 ```
 
-The target represents whether crash activity for a county/day is elevated relative to that county's historical baseline.
+The target represents whether crash activity for a county × date × 3-hour block is elevated relative to that county's historical baseline.
 
 The exact threshold or baseline definition must be determined during EDA and documented.
 
@@ -89,7 +89,7 @@ V1 is complete when:
 * crash extraction is reproducible
 * AADT is incorporated
 * historical weather extraction is reproducible
-* the county/day modeling dataset can be rebuilt
+* the county × date × 3-hour block modeling dataset can be rebuilt
 * the baseline is evaluated
 * Logistic Regression is evaluated
 * 2025 remains held out during training
