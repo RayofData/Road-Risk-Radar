@@ -60,7 +60,7 @@ Open-Meteo provides the historical weather used for model training.
 
 [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api)
 
-Because the modeling unit is **county × day x 3-hour block**, V1 will use daily weather for a representative location within each Iowa county.
+Because the modeling unit is **county × day x 3-hour block**, V1 will use 3-hour block weather for a representative location within each Iowa county.
 
 ---
 
@@ -100,7 +100,7 @@ Future predictions therefore assume the forecast conditions occur as predicted.
 
 * Iowa only
 * 2015–2025
-* county/day/3xhour block observations
+* county × date × 3-hour block observations
 * Iowa crash data
 * Iowa AADT data
 * Open-Meteo historical weather
