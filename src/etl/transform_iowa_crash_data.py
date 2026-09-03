@@ -5,7 +5,13 @@ import pandas as pd
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
-RAW_PATH = Path("data/raw/iowa_crash_data_raw.json")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+RAW_DIR = PROJECT_ROOT / "data" / "raw"
+RAW_PATH = RAW_DIR / "iowa_crash_data_raw.json"
+
+INTERIM_DIR= PROJECT_ROOT / "data" / "interim"
+INTERIM_PATH = INTERIM_DIR / "iowa_crash_county_counts.parquet"
 
 calendar = USFederalHolidayCalendar()
 
@@ -40,8 +46,8 @@ def handle_missing_values(crashes):
     return crashes_clean
 
 
-def feature_engineer_dates(crashes):
-    """Convert crash dates and create calendar-based features."""
+def convert_dates(crashes):
+    """Convert crash timestamps and creates the aggregation date."""
     crashes_clean = crashes.copy()
 
     crashes_clean["CRASH_DATE"] = pd.to_datetime(
@@ -58,8 +64,15 @@ def feature_engineer_dates(crashes):
         crashes_clean["CRASH_DATETIME"].dt.normalize()
     )
 
-    start_date = crashes_clean["CRASH_DATE"].min().date()
-    end_date = crashes_clean["CRASH_DATE"].max().date()
+    return crashes_clean
+
+
+def add_calendar_features(crashes):
+    """Add calendar features to county-date-time-block observations."""
+    crashes_clean = crashes.copy()
+
+    start_date = crashes_clean["DATE"].min().date()
+    end_date = crashes_clean["DATE"].max().date()
 
     federal_holidays = calendar.holidays(
         start=start_date,
@@ -115,8 +128,8 @@ def group_county_time_blocks(crashes):
         .sort_values("COUNTY_NUMBER")
     )
 
-    start_date = crashes["CRASH_DATE"].min().date()
-    end_date = crashes["CRASH_DATE"].max().date()
+    start_date = crashes["DATE"].min().date()
+    end_date = crashes["DATE"].max().date()
 
     dates = pd.date_range(
         start_date,
@@ -176,16 +189,52 @@ def group_county_time_blocks(crashes):
     return county_block_data
 
 
+def save_crashes(crashes):
+    """Save the processed crash dataframe as Parquet."""
+    try: 
+        INTERIM_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        raise RuntimeError(
+            f"Could not create output directory: {e}"
+        )
+    try: 
+        crashes.to_parquet(INTERIM_PATH, index=False)
+    except OSError as e:
+        raise RuntimeError(
+            f"Could not save processed data to {INTERIM_PATH}: {e}"
+        )
+
 def main():
     """Run the Iowa crash-data transformation pipeline."""
     crashes = load_raw_data()
     crashes_clean = handle_missing_values(crashes)
-    crashes_clean = feature_engineer_dates(crashes_clean)
+    crashes_clean = convert_dates(crashes_clean)
     crashes_clean = add_time_block(crashes_clean)
     crashes_blocks = group_county_time_blocks(crashes_clean)
+    crashes_blocks = add_calendar_features(crashes_blocks)
+    save_crashes(crashes_blocks)
 
+
+    print("Preview crashes dataframe:\n")
     print(crashes_blocks.head())
-    print(crashes_blocks.shape)
+    print(crashes_blocks.tail())
+    print("Input crashes:", len(crashes_clean))
+    print("Aggregated crashes:", crashes_blocks["crash_count"].sum())
+    print(f"Crashes shape: {crashes_blocks.shape}")
+
+    print(crashes_blocks["TIME_BLOCK"].unique())
+    print(crashes_blocks["COUNTY_NUMBER"].nunique())
+    print(crashes_blocks["DATE"].min())
+    print(crashes_blocks["DATE"].max())
+
+    expected_rows = (
+        crashes_blocks["COUNTY_NUMBER"].nunique()
+        * crashes_blocks["DATE"].nunique()
+        * 8
+    )
+
+    print("Expected:", expected_rows)
+    print("Actual:", len(crashes_blocks))
 
 
 if __name__ == "__main__":
