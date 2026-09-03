@@ -1,6 +1,6 @@
 # Road Risk Radar
 
-**Road Risk Radar** is a machine learning project that predicts whether an Iowa county is likely to experience **elevated crash activity on a future day** based on historical crash patterns, traffic exposure, weather, and calendar conditions.
+**Road Risk Radar** is a machine learning project that predicts whether an Iowa county is likely to experience **elevated crash activity on a future day and time period** based on historical crash patterns, traffic exposure, weather, and calendar conditions.
 
 The project is built with **Python, scikit-learn, Streamlit, and Open-Meteo**.
 
@@ -8,7 +8,7 @@ The project is built with **Python, scikit-learn, Streamlit, and Open-Meteo**.
 
 The first version focuses only on **Iowa** so the complete data and machine learning pipeline can be built, validated, and understood before expanding to additional states.
 
-Training data covers **2021–2025** and combines:
+Training data covers **2015–2025** and combines:
 
 * Iowa statewide crash records
 * Iowa AADT traffic-volume data
@@ -18,10 +18,10 @@ Training data covers **2021–2025** and combines:
 The modeling unit is:
 
 ```text
-county × day
+county × date × 3-hour block
 ```
 
-Each row represents one Iowa county on one date.
+Each row represents one Iowa county for one date and 3-hour block.
 
 ## Prediction Target
 
@@ -49,8 +49,9 @@ V1 intentionally uses a small model comparison:
 The data is split chronologically:
 
 ```text
-Train: 2021–2024
-Test:  2025
+Train:      2015–2023
+Validate:   2024
+Test:       2025
 ```
 
 This evaluates whether patterns learned from earlier years can predict crash activity in a future year.

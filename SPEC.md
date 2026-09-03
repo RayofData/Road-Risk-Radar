@@ -2,13 +2,13 @@
 
 ## Goal
 
-Build an end-to-end Streamlit ML application that predicts whether an **Iowa county will experience elevated crash activity on a future day**.
+Build an end-to-end Streamlit ML application that predicts whether an **Iowa county will experience elevated crash activity on a future day and time period**.
 
 ## Scope
 
 * Iowa only
-* 2021–2025 data
-* modeling unit: `county × day`
+* 2015–2025 data
+* modeling unit: `county × date × 3-hour block`
 * no map
 * no boosting
 * no SHAP
@@ -23,11 +23,11 @@ Use:
 * Open-Meteo historical weather
 * calendar features
 
-Crash records must be aggregated to county/day.
+Crash records must be aggregated to county × date × 3-hour block.
 
 AADT must provide county-level traffic exposure.
 
-Historical weather must represent each county/day.
+Historical weather must represent each county × date × 3-hour block.
 
 ## Target
 
@@ -37,7 +37,7 @@ Binary classification:
 elevated_crash_activity
 ```
 
-The target represents whether crash activity for a county/day is elevated relative to that county's historical baseline.
+The target represents whether crash activity for a county × date × 3-hour block is elevated relative to that county's historical baseline.
 
 The exact threshold or baseline definition must be determined during EDA and documented.
 
@@ -53,8 +53,9 @@ Compare:
 Use a temporal split:
 
 ```text
-Train: 2021–2024
-Test:  2025
+Train:          2015–2023
+Validation:     2024
+Test:           2025
 ```
 
 Do not use a random split as the primary evaluation.
@@ -88,7 +89,7 @@ V1 is complete when:
 * crash extraction is reproducible
 * AADT is incorporated
 * historical weather extraction is reproducible
-* the county/day modeling dataset can be rebuilt
+* the county × date × 3-hour block modeling dataset can be rebuilt
 * the baseline is evaluated
 * Logistic Regression is evaluated
 * 2025 remains held out during training

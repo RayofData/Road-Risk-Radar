@@ -9,7 +9,7 @@
 * extract Iowa crashes
 * extract Iowa AADT
 * extract historical Open-Meteo weather
-* aggregate to county/day
+* aggregate to county × date × 3-hour block
 * build modeling dataset
 
 ### Week 2
