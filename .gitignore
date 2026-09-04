@@ -14,6 +14,7 @@ data/raw/*
 data/interim/*
 data/processed/*
 reports/*
+
 !data/raw/.gitkeep
 !data/interim/.gitkeep
 !data/processed/.gitkeep
