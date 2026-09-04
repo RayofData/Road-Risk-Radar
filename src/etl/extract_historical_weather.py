@@ -26,6 +26,21 @@ LOCAL_TIMEZONE = "America/Chicago"
 
 COUNTY_BATCH_SIZE = 25
 
+TIME_COL = "time"
+COUNTY_FIPS_COL = "county_fips"
+COUNTY_NAME_COL = "county_name"
+LATITUDE_COL = "latitude"
+LONGITUDE_COL = "longitude"
+CRASH_DATE_COL = "DATE"
+
+FIXED_COLUMNS = (
+    TIME_COL,
+    COUNTY_FIPS_COL,
+    COUNTY_NAME_COL,
+    LATITUDE_COL,
+    LONGITUDE_COL,
+)
+
 HOURLY_VARIABLES = [
     "temperature_2m",
     "relative_humidity_2m",
@@ -39,10 +54,10 @@ HOURLY_VARIABLES = [
 
 def load_date_range():
     """Get the weather date range from the interim crash dataset."""
-    crashes = pd.read_parquet(CRASH_PATH, columns=["DATE"])
+    crashes = pd.read_parquet(CRASH_PATH, columns=[CRASH_DATE_COL])
 
-    start_date = crashes["DATE"].min().normalize()
-    end_date = crashes["DATE"].max().normalize()
+    start_date = crashes[CRASH_DATE_COL].min().normalize()
+    end_date = crashes[CRASH_DATE_COL].max().normalize()
 
     return start_date, end_date
 
@@ -50,7 +65,7 @@ def load_date_range():
 def load_county_locations():
     """Load representative coordinates for all Iowa counties."""
     if COUNTY_COORDS_PATH.exists():
-        return pd.read_csv(COUNTY_COORDS_PATH, dtype={"county_fips": str})
+        return pd.read_csv(COUNTY_COORDS_PATH, dtype={COUNTY_FIPS_COL: str})
 
     counties = pd.read_csv(
         COUNTY_COORDS_URL,
@@ -69,18 +84,18 @@ def load_county_locations():
         ]
         .rename(
             columns={
-                "GEOID": "county_fips",
-                "NAME": "county_name",
-                "INTPTLAT": "latitude",
-                "INTPTLONG": "longitude"
+                "GEOID": COUNTY_FIPS_COL,
+                "NAME": COUNTY_NAME_COL,
+                "INTPTLAT": LATITUDE_COL,
+                "INTPTLONG": LONGITUDE_COL
             }
         )
     )
 
-    counties["county_name"] = counties["county_name"].str.replace(
+    counties[COUNTY_NAME_COL] = counties[COUNTY_NAME_COL].str.replace(
         r" County$", "", regex=True
     )
-    counties["county_fips"] = counties["county_fips"].str.zfill(5)
+    counties[COUNTY_FIPS_COL] = counties[COUNTY_FIPS_COL].str.zfill(5)
 
     if len(counties) != 99:
         raise ValueError(
@@ -103,14 +118,7 @@ def month_file_is_valid(path, start_date, end_date, counties):
     except (OSError, ValueError):
         return False
 
-    expected_columns = {
-        "time",
-        "county_fips",
-        "county_name",
-        "latitude",
-        "longitude",
-        *HOURLY_VARIABLES
-    }
+    expected_columns = set(FIXED_COLUMNS) | set(HOURLY_VARIABLES)
 
     if not expected_columns.issubset(weather.columns):
         return False
@@ -118,8 +126,8 @@ def month_file_is_valid(path, start_date, end_date, counties):
     if weather[HOURLY_VARIABLES].isna().all().any():
         return False
 
-    expected_counties = set(counties["county_fips"])
-    actual_counties = set(weather["county_fips"])
+    expected_counties = set(counties[COUNTY_FIPS_COL])
+    actual_counties = set(weather[COUNTY_FIPS_COL])
 
     local_start = start_date.tz_localize(LOCAL_TIMEZONE)
 
@@ -163,10 +171,10 @@ def build_county_weather(location, response, start_date, end_date):
     timestamps_local = timestamps_utc.tz_convert(LOCAL_TIMEZONE)
 
     county_weather = pd.DataFrame(weather_columns)
-    county_weather.insert(0, "time", timestamps_local)
+    county_weather.insert(0, TIME_COL, timestamps_local)
 
     local_dates = (
-        county_weather["time"]
+        county_weather[TIME_COL]
         .dt.tz_localize(None)
         .dt.normalize()
     )
@@ -178,10 +186,10 @@ def build_county_weather(location, response, start_date, end_date):
 
     county_weather = county_weather.loc[mask].reset_index(drop=True)
 
-    county_weather.insert(1, "county_fips", location["county_fips"])
-    county_weather.insert(2, "county_name", location["county_name"])
-    county_weather.insert(3, "latitude", location["latitude"])
-    county_weather.insert(4, "longitude", location["longitude"])
+    county_weather.insert(1, COUNTY_FIPS_COL, location[COUNTY_FIPS_COL])
+    county_weather.insert(2, COUNTY_NAME_COL, location[COUNTY_NAME_COL])
+    county_weather.insert(3, LATITUDE_COL, location[LATITUDE_COL])
+    county_weather.insert(4, LONGITUDE_COL, location[LONGITUDE_COL])
 
     return county_weather
 
@@ -197,8 +205,8 @@ def download_month(counties, start_date, end_date):
         request_end = end_date + pd.Timedelta(days=1)
 
         params = {
-            "latitude": batch["latitude"].tolist(),
-            "longitude": batch["longitude"].tolist(),
+            LATITUDE_COL: batch[LATITUDE_COL].tolist(),
+            LONGITUDE_COL: batch[LONGITUDE_COL].tolist(),
             "start_date": request_start.strftime("%Y-%m-%d"),
             "end_date": request_end.strftime("%Y-%m-%d"),
             "hourly": HOURLY_VARIABLES,
