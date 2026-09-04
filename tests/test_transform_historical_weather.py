@@ -24,7 +24,7 @@ def test_create_time_blocks():
     assert result["time_block"].tolist() == [0,0,3,3,21]
 
 
-def test_circular_mean_handels_zero_boundary():
+def test_circular_mean_handles_zero_boundary():
     directions = np.deg2rad([359,1])
 
     mean_sin = np.sin(directions).mean()

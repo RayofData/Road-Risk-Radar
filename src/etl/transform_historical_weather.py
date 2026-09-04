@@ -1,11 +1,9 @@
 """Transform hourly historical weather into yearly 3-hour block datasets."""
 
 from pathlib import Path
-from time import perf_counter
 
 import numpy as np
 import pandas as pd
-import calendar
 
 
 RAW_DIR = Path("data/raw/historical_weather")
@@ -14,14 +12,15 @@ INTERIM_DIR = Path("data/interim/historical_weather")
 STATE_CODE = "ia"
 YEARS = range(2015, 2026)
 
-EXPECTED_COUNTIES = 99
-EXPECTED_TIME_BLOCKS = {0, 3, 6, 9, 12, 15, 18, 21}
 
-INTERIM_COLUMNS = [
+GROUP_COLUMNS = [
     "county_fips",
     "county_name",
     "date",
     "time_block",
+]
+
+WEATHER_COLUMNS = GROUP_COLUMNS + [
     "temperature_2m",
     "relative_humidity_2m",
     "pressure_msl",
@@ -41,7 +40,7 @@ def enforce_schema(weather):
     df["time_block"] = df["time_block"].astype("int8")
     df["weather_code"] = df["weather_code"].astype("Int16")
 
-    return df[INTERIM_COLUMNS]
+    return df[WEATHER_COLUMNS]
 
 
 def get_year_files(year):
@@ -91,11 +90,9 @@ def create_time_blocks(weather):
 
 def circular_mean_degrees(mean_sin, mean_cos):
     """Convert mean sine and cosine components to wind direction in degrees."""
-    direction = np.rad2deg(
-        np.arctan2(mean_sin, mean_cos)
-    )
+    angle = np.rad2deg(np.arctan2(mean_sin, mean_cos))
 
-    return direction % 360
+    return angle % 360
 
 
 def get_weather_code_modes(weather, group_columns):
@@ -131,18 +128,8 @@ def get_weather_code_modes(weather, group_columns):
 
 def aggregate_weather(weather):
     """Aggregate hourly weather into county-date 3-hour blocks."""
-    start = perf_counter()
-
     df = weather.copy()
 
-    group_columns = [
-        "county_fips",
-        "county_name",
-        "date",
-        "time_block",
-    ]
-
-    # Convert wind direction to unit-circle components.
     wind_radians = np.deg2rad(df["wind_direction_10m"])
 
     df["_wind_sin"] = np.sin(wind_radians)
@@ -151,7 +138,7 @@ def aggregate_weather(weather):
     weather_3hr = (
         df
         .groupby(
-            group_columns,
+            GROUP_COLUMNS,
             as_index=False
         )
         .agg(
@@ -161,38 +148,42 @@ def aggregate_weather(weather):
             wind_speed_10m=("wind_speed_10m", "mean"),
             precipitation=("precipitation", "sum"),
             _wind_sin=("_wind_sin", "mean"),
-            _wind_cos=("_wind_cos", "mean"),
+            _wind_cos=("_wind_cos", "mean")
         )
     )
 
     weather_3hr["wind_direction_10m"] = circular_mean_degrees(
         weather_3hr["_wind_sin"],
-        weather_3hr["_wind_cos"],
+        weather_3hr["_wind_cos"]
     )
 
     weather_3hr = weather_3hr.drop(
-        columns=["_wind_sin", "_wind_cos"]
+        columns=["_wind_sin","_wind_cos"]
     )
 
     weather_code_modes = get_weather_code_modes(
         df,
-        group_columns
+        GROUP_COLUMNS
     )
 
     weather_3hr = weather_3hr.merge(
         weather_code_modes,
-        on=group_columns,
+        on=GROUP_COLUMNS,
         how="left"
     )
 
-    elapsed = perf_counter() - start
 
-    return weather_3hr, elapsed
+    return weather_3hr
 
 
 def save_year(weather, year):
     """Save one transformed year to the interim data directory."""
-    INTERIM_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        INTERIM_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        raise RuntimeError (
+            f"Unable to create directory {INTERIM_DIR}: {e}"
+        ) from e
 
     output_path = (
         INTERIM_DIR
@@ -220,14 +211,11 @@ def process_year(year):
 
     print(f"{year}: processing...")
 
-    start = perf_counter()
 
     weather_df = load_dataframe(year)
     weather_df = create_time_blocks(weather_df)
 
-    weather_3hr, aggregation_time = aggregate_weather(
-        weather_df
-    )
+    weather_3hr = aggregate_weather(weather_df)
     weather_3hr = enforce_schema(weather_3hr)
 
     output_path = save_year(
@@ -235,13 +223,10 @@ def process_year(year):
         year
     )
 
-    total_time = perf_counter() - start
 
     print(
         f"{year}: {len(weather_df):,} hourly rows -> "
-        f"{len(weather_3hr):,} 3-hour rows | "
-        f"aggregation {aggregation_time:.1f}s | "
-        f"total {total_time:.1f}s"
+        f"{len(weather_3hr):,} 3-hour rows"
     )
     print(f"Saved: {output_path}")
 
@@ -252,8 +237,8 @@ def main():
         try:
             process_year(year)
 
-        except ValueError as error:
-            print(f"{year}: skipped. {error}")
+        except ValueError as e:
+            print(f"{year}: skipped. {e}")
 
 
 if __name__ == "__main__":
